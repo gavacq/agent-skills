@@ -42,4 +42,4 @@ dev/
 - Skills have no `name` field in frontmatter — namespacing comes from the directory name under `skills/` combined with the plugin name.
 - `allowed-tools` should be scoped as narrowly as possible per skill (principle of least privilege). Bash commands use glob patterns (e.g., `Bash(git diff *)`).
 - `disable-model-invocation: true` is set on all skills to prevent automatic triggering — skills must be explicitly invoked.
-- Commits use `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` footer.
+- Commits use Conventional Commits format (see `dev/skills/commit/SKILL.md`).
