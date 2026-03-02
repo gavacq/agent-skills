@@ -5,7 +5,7 @@ Claude Code plugin for phased development workflows — building features and fi
 ## The Loop
 
 ```
-Setup → Research → Plan → Implement → Review → Commit
+Setup → Research → Plan → Implement
 ```
 
 Each phase is a checkpoint. The AI pauses after each phase for human review before proceeding.
@@ -28,12 +28,11 @@ task_<task-id>/
   context.md       # original task description and Q&A from setup
   research.md      # findings from research phase
   plan.md          # phased implementation plan with checkboxes
-  review.md        # review findings
 ```
 
 Task files are committed to the branch for tracking and shareability during development. **Remove the task directory before merging to main.**
 
-## Skills
+## Phases
 
 ### `/dev:setup [task-id-or-context]`
 - Interactive Q&A to gather context: environment, domain, scope, relevant MCPs/tools
@@ -58,6 +57,8 @@ Task files are committed to the branch for tracking and shareability during deve
 - Marks completed steps with checkboxes in `plan.md`
 - Stops at the end of each phase for review
 - Automated checks run after each phase: lint, test, typecheck
+
+## Utility Skills
 
 ### `/dev:review <task-id> [low|medium|high]`
 - **Low**: Quick diff scan, basic correctness check
@@ -87,4 +88,4 @@ The loop is designed to be conversational. At any point you can:
 - Ask clarifying questions about the current phase
 - Adjust research/review intensity
 - Skip or reorder phases
-- Inspect state with `/dev:status`
+- Run utility skills (`/dev:review`, `/dev:commit`, `/dev:status`) at any time

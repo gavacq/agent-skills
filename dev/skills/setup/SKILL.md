@@ -54,9 +54,7 @@ task_<task-id>/
     "setup": "completed",
     "research": "pending",
     "plan": "pending",
-    "implement": "pending",
-    "review": "pending",
-    "commit": "pending"
+    "implement": "pending"
   },
   "tools": ["list", "of", "relevant", "mcps"],
   "planFile": null

@@ -18,7 +18,7 @@ If no plan exists, tell the user to run `/dev:plan` first.
 
 Parse the plan markdown. Find the first phase that has unchecked items (`- [ ]`). This is the phase to implement.
 
-If all phases are complete, tell the user implementation is done and suggest `/dev:review <task-id>`.
+If all phases are complete, mark `phases.implement` as `"completed"` in state.json and tell the user implementation is done. Suggest `/dev:review <task-id>` or `/dev:commit <task-id>` as next steps.
 
 ## 3. Implement the current phase
 
