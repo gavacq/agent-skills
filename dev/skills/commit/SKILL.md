@@ -14,14 +14,14 @@ Read `task_<task-id>/state.json`, `task_<task-id>/context.md`, and `task_<task-i
 
 ## 2. Check readiness
 
-- Run `git status` and `git diff` to see what's changed
-- Ensure automated checks pass (lint, test, typecheck) if available
-- If checks fail, report the failures and ask the user how to proceed
+- Run `git status` (to see modified and untracked files) and `git diff` to see what's changed
+- Do NOT run automated checks — use `/dev:test` separately if needed
 
 ## 3. Stage changes
 
 Stage the relevant files. Include:
-- All code changes related to the task
+- All modified files related to the task
+- All untracked files created as part of the task (new files, new directories)
 - The task directory files (`task_<task-id>/`)
 - Do NOT stage files that contain secrets (.env, credentials, etc.)
 
