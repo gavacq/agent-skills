@@ -1,5 +1,4 @@
 ---
-name: status
 description: Show the current state of a task or list all tasks.
 ---
 

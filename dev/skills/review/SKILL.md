@@ -1,5 +1,4 @@
 ---
-name: review
 description: Review code changes for the current task. Intensity is configurable (low, medium, high).
 ---
 

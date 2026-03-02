@@ -1,5 +1,4 @@
 ---
-name: implement
 description: Execute the next phase of the implementation plan. Stops after each phase for review. Runs automated checks between phases.
 ---
 

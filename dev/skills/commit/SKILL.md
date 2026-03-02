@@ -1,5 +1,4 @@
 ---
-name: commit
 description: Stage and commit changes for the current task with a well-structured commit message.
 ---
 

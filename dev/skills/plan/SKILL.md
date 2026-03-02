@@ -1,5 +1,4 @@
 ---
-name: plan
 description: Generate a phased implementation plan with checkboxes. The plan is saved to the repo and editable before execution.
 ---
 

@@ -1,5 +1,4 @@
 ---
-name: research
 description: Research the codebase and gather information for a task. Intensity is configurable (low, medium, high).
 ---
 

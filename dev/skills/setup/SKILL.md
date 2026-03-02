@@ -1,5 +1,4 @@
 ---
-name: setup
 description: Initialize a new task or resume an existing one. Creates a task ID, gathers context via Q&A, and persists task state to the repo.
 ---
 
