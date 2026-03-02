@@ -1,7 +1,7 @@
 ---
 description: Review code changes or a planning doc. Operates on unstaged changes (default), a commit range, or a plan file. Intensity is configurable (low, medium, high).
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Edit, Write, Agent, Bash(npm run *), Bash(npx *), Bash(make *), Bash(git diff *), Bash(git log *)
+allowed-tools: Read, Glob, Grep, Edit, Write, Agent(correctness-reviewer, security-reviewer, architecture-reviewer), Bash(npm run *), Bash(npx *), Bash(make *), Bash(git diff *), Bash(git log *)
 ---
 
 # Review
@@ -64,12 +64,17 @@ Evaluate every area below that is relevant to the diff. Earlier areas take prior
 
 #### High
 - Run automated checks
-- Launch parallel review agents (one per area cluster):
-  - Correctness + Performance
-  - UX/UI/Accessibility + Security
-  - Refactoring & Design
-- Cross-reference findings across agents
-- Produce a comprehensive review document
+- Launch three review agents in parallel:
+  - `correctness-reviewer`: Correctness, logic errors, edge cases, performance (areas 1-2)
+  - `security-reviewer`: Security vulnerabilities, UX/accessibility concerns (areas 3-4)
+  - `architecture-reviewer`: Architectural consistency, refactoring opportunities, design patterns (area 5)
+- Provide each agent with:
+  - The full diff being reviewed
+  - The plan from `task_<task-id>/plan.md`
+  - Research findings from `task_<task-id>/research.md` (if available, for pattern context)
+- Cross-reference findings across all three agents
+- Deduplicate overlapping findings
+- Produce a comprehensive review document organized by severity
 
 ## 4. Plan review (--plan)
 

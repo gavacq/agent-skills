@@ -1,7 +1,7 @@
 ---
 description: Research the codebase and gather information for a task. Intensity is configurable (low, medium, high).
 disable-model-invocation: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Agent, mcp__context7__*
+allowed-tools: Read, Write, Edit, Glob, Grep, Agent(codebase-explorer, pattern-analyzer, prior-work-searcher), mcp__context7__*
 ---
 
 # Research
@@ -26,17 +26,17 @@ Use the intensity from `$ARGUMENTS` if provided, otherwise fall back to `researc
 - Quick and focused — stay in the main conversation
 
 ### Medium
-- Use the Agent tool with subagent_type=Explore to search the codebase for relevant patterns, dependencies, and related code
-- Identify architectural patterns and conventions that the implementation should follow
-- Check for existing tests, types, and utilities that can be reused
-- Summarize findings with file paths and line references
+- Launch a `codebase-explorer` agent with the task description and scope from context.md
+- The agent will map structure, trace dependencies, and identify relevant files, tests, types, and utilities
+- Summarize the agent's findings with file paths and line references
 
 ### High
-- Launch multiple parallel research agents:
-  - One to map the codebase structure and dependencies
-  - One to analyze patterns and conventions
-  - One to search for related prior work (PRs, docs, existing implementations)
-- Cross-reference findings across agents
+- Launch three agents in parallel:
+  - `codebase-explorer`: Map the codebase structure and dependencies relevant to the task
+  - `pattern-analyzer`: Analyze coding patterns, conventions, and style norms in the relevant areas
+  - `prior-work-searcher`: Search for related prior work, documentation, and existing implementations
+- Provide each agent with the task description from context.md
+- Cross-reference findings across all three agents
 - Produce a comprehensive research document with architecture notes, dependency maps, and implementation recommendations
 
 ## 3. Write research findings

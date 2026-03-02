@@ -1,7 +1,7 @@
 ---
 description: Initialize a new task or resume an existing one. Creates a task ID, gathers context via Q&A, and persists task state to the repo.
 disable-model-invocation: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(mkdir *), Bash(git checkout *), Bash(git branch *)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(mkdir *), Bash(git checkout *), Bash(git branch *), Bash(git log *)
 ---
 
 # Setup
@@ -30,6 +30,62 @@ Ask the user structured questions to understand the task. Use the AskUserQuestio
 - **What is the scope?** Which parts of the codebase are involved?
 - **What tools/MCPs are relevant?** (e.g., Context7, database access, browser, etc.)
 - **Any constraints?** (e.g., no breaking changes, must support X, deadline)
+- **What commit scopes does this project use?** Conventional commits use an optional `(scope)` after the type (e.g., `feat(auth):`, `fix(parser):`). Check `git log --oneline -50` for existing scope usage in the project. Present any discovered scopes to the user and ask if they want to add or remove any. Common scopes are module or subsystem names (e.g., `auth`, `api`, `ui`, `db`, `config`). Store as an array — empty array if the project doesn't use scopes.
+- **What automated checks are available?** Ask for the commands used for linting, formatting, testing, typechecking, and building. For each command, combine fix and quiet flags so a single invocation auto-fixes what it can and reports only remaining issues with minimal output. Guide the user:
+  - ESLint: `--fix --quiet` (auto-fixes, reports only unfixable errors)
+  - Prettier: `--write` (fixes in place; `--check` for check-only)
+  - Vitest/Jest: `--silent` (no fix mode — just quiet output)
+  - TypeScript: `--noEmit` (already minimal, no fix mode)
+  - pytest: `-q` (quiet; no auto-fix)
+  - ruff: `check --fix` (auto-fixes, reports remaining)
+  - Build commands: vary (suggest `--quiet` or `--silent` if available)
+
+  Store only commands the user actually has. Empty object if none. Example:
+  ```json
+  {
+    "lint": "npx eslint . --fix --quiet",
+    "format": "npx prettier --write .",
+    "test": "npx vitest run --silent",
+    "typecheck": "npx tsc --noEmit"
+  }
+  ```
+
+## 2b. Configure sandbox (optional)
+
+Help the user set up Claude Code sandbox configuration for the work repo. This controls what commands can access at the OS level — filesystem writes, network, and sensitive reads.
+
+### Check existing config
+
+Read `.claude/settings.local.json` in the work repo. If it exists and has a `sandbox` key, show the current config to the user and ask if they want to change it. If satisfied, skip to §3.
+
+### Walk through settings
+
+If no sandbox config exists, ask the user if they want to set one up. If yes, walk through each setting:
+
+- **Filesystem writes** — "By default, sandboxed commands can only write to the project directory. Where else does your toolchain write?" Suggest common paths based on detected tools:
+  - Node/pnpm: `~/.local/share/pnpm`, `~/.npm`
+  - Scala/sbt: `~/.sbt`, `~/.ivy2`, `~/.coursier`, `~/.cache`
+  - Python: `~/.cache/pip`, `~/.local`
+  - General: `//tmp`
+
+- **Sensitive reads to deny** — "Which paths should be blocked from read access?" Suggest defaults: `~/.aws/credentials`, `~/.ssh`, `~/.gnupg`. Let the user add/remove.
+
+- **Network domains** — "Which registries and APIs does this project need?" Suggest based on toolchain:
+  - npm/pnpm: `registry.npmjs.org`, `*.npmjs.org`
+  - sbt/maven: `repo1.maven.org`, `*.scala-sbt.org`
+  - pip: `pypi.org`, `files.pythonhosted.org`
+  - General: `github.com`, `*.githubusercontent.com`
+  - Project-specific: ask about APIs (e.g., `api.cloudflare.com`, `api.stripe.com`)
+
+- **Local binding** — "Does this project run dev servers on localhost?" If yes, set `allowLocalBinding: true`.
+
+- **Excluded commands** — "Any commands that don't work in sandbox? Docker is a common one." These bypass sandbox but still require permission approval.
+
+- **Auto-allow** — Recommend `autoAllowBashIfSandboxed: true`. Explain: "Commands within sandbox boundaries run without prompting. Commands outside boundaries still prompt for approval."
+
+### Write config
+
+Present the full generated config to the user for review before writing. Write to `.claude/settings.local.json` (gitignored, local to the user).
 
 ## 3. Confirm task ID
 
@@ -63,6 +119,8 @@ task_<task-id>/
     "implement": "pending"
   },
   "tools": ["list", "of", "relevant", "mcps"],
+  "commitScopes": [],
+  "testCommands": {},
   "planFile": null
 }
 ```
@@ -79,6 +137,8 @@ Write a markdown file capturing all the context gathered in the Q&A. Include:
 - Relevant tools/MCPs
 - Constraints
 - Any pasted content or references
+- Commit scopes (list discovered/configured scopes, or "None — scopes not used")
+- Test commands (list each configured command, or "None configured")
 
 ## 5. Confirm and summarize
 
