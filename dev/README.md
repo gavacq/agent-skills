@@ -16,59 +16,68 @@ Each phase is a checkpoint. The AI pauses after each phase for human review befo
 claude --plugin-dir ./dev
 ```
 
+## Tasks
+
+All work is organized as tasks. Each task gets an ID and a directory in the repo:
+
+```
+.dev/tasks/task_<task-id>/
+  state.json       # phase tracking, config, timestamps
+  context.md       # original task description and Q&A from setup
+  research.md      # findings from research phase
+  plan.md          # phased implementation plan with checkboxes
+  review.md        # review findings
+```
+
+Task files are committed to the repo for tracking and shareability.
+
 ## Skills
 
-### 1. Setup (`/dev:setup`)
+### `/dev:setup [task-id-or-context]`
 - Interactive Q&A to gather context: environment, domain, scope, relevant MCPs/tools
-- Persists task context to a planning document and state JSON
+- Generates a task ID from the conversation (or uses one you provide)
+- Creates the task directory with `state.json` and `context.md`
 - Accepts arbitrary input (markdown, Linear tickets, PRs, etc.)
 
-### 2. Research (`/dev:research [low|medium|high]`)
+### `/dev:research <task-id> [low|medium|high]`
 - **Low**: Quick scan of relevant files, surface-level understanding
 - **Medium**: Sub-agents for codebase analysis, pattern finding, dependency mapping
 - **High**: Deep multi-agent research — schema analysis, API surface mapping, cross-repo exploration
-- Output: research summary appended to the planning document
+- Output: `research.md` in the task directory
 
-### 3. Plan (`/dev:plan`)
+### `/dev:plan <task-id>`
 - Generates a phased markdown plan with checkboxes
 - Each phase maps to an implementable unit of work
-- Plan is saved to the repo branch as a `.md` file
+- Saved as `plan.md` in the task directory
 - Editable — phases can be added, removed, or reordered before execution
 
-### 4. Implement (`/dev:implement`)
-- Executes the current phase of the plan
-- Marks completed steps with checkboxes
+### `/dev:implement <task-id>`
+- Executes the next incomplete phase of the plan
+- Marks completed steps with checkboxes in `plan.md`
 - Stops at the end of each phase for review
 - Automated checks run after each phase: lint, test, typecheck
 
-### 5. Review (`/dev:review [low|medium|high]`)
+### `/dev:review <task-id> [low|medium|high]`
 - **Low**: Quick diff scan, basic correctness check
 - **Medium**: Code review with suggestions, edge case analysis
 - **High**: Comprehensive review — architecture alignment, performance, security
-- Can be run between any phases on demand
+- Output: `review.md` in the task directory
 
-### 6. Commit (`/dev:commit`)
-- Summarizes changes
-- Creates a well-structured commit message
-- Stages and commits relevant files
+### `/dev:commit <task-id>`
+- Summarizes changes and drafts a commit message referencing the task ID
+- Stages code changes and task directory files
+- Commits after user approval
+
+### `/dev:status [task-id]`
+- With a task ID: show phase progress and config
+- Without: list all tasks with summary table
 
 ## Task Tiers
 
 | Tier | Use Case | Default Research | Default Review |
 |------|----------|-----------------|----------------|
-| Small (`/dev:task small`) | Bug fixes, tweaks | Low | Low |
-| Medium (`/dev:task medium`) | New features, refactors | Medium | Medium |
-
-## State Tracking
-
-State is tracked in JSON (`.dev-state.json`) at the repo root:
-- Current phase
-- Research/review levels
-- Plan file path
-- Completed phases
-- Active MCPs/tools
-
-Plans are tracked in markdown with checkboxes for incremental progress.
+| Small | Bug fixes, tweaks | Low | Low |
+| Medium | New features, refactors | Medium | Medium |
 
 ## Conversational
 
