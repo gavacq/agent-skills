@@ -8,12 +8,18 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash(mkdir *), Bash(git checkout *
 
 You are initializing a development task. Follow these steps:
 
-## 1. Check for existing task
+## 1. Resolve task ID
 
-If the user provides a task ID (e.g., `/dev:setup my-task-id`), check if `task_$ARGUMENTS/` exists.
+Try to determine the task ID in this order:
 
-- If it exists, read `task_$ARGUMENTS/state.json` and resume from the current phase. Summarize where things left off and ask the user what they'd like to do next.
-- If it does not exist, treat `$ARGUMENTS` as context for creating a new task (see step 2).
+1. **Explicit argument**: If the user provides a task ID via `$ARGUMENTS`, use that.
+2. **Branch name**: Run `git branch --show-current`. If the branch name is not `main` or `master`, use it as the task ID (it should already be kebab-case).
+3. **Build from context**: If neither of the above yields a task ID, proceed to Q&A (step 2) and generate one from the gathered context.
+
+Once you have a candidate task ID, check if `task_<task-id>/` exists:
+
+- If it exists, read `task_<task-id>/state.json` and resume from the current phase. Summarize where things left off and ask the user what they'd like to do next.
+- If it does not exist, continue to step 2 to create a new task.
 
 ## 2. Gather context via Q&A
 
@@ -25,9 +31,9 @@ Ask the user structured questions to understand the task. Use the AskUserQuestio
 - **What tools/MCPs are relevant?** (e.g., Context7, database access, browser, etc.)
 - **Any constraints?** (e.g., no breaking changes, must support X, deadline)
 
-## 3. Generate a task ID
+## 3. Confirm task ID
 
-Based on the Q&A, generate a short, descriptive, kebab-case task ID (e.g., `fix-auth-redirect`, `add-daily-quest-logic`). If the user provided an ID or name hint in `$ARGUMENTS`, use that as the basis. Present the proposed ID and let the user confirm or adjust.
+If the task ID was resolved from the branch name or argument, present it for confirmation. If it was not resolved yet, generate a short, descriptive, kebab-case ID from the Q&A context (e.g., `fix-auth-redirect`, `add-daily-quest-logic`). Present the proposed ID and let the user confirm or adjust.
 
 ## 4. Create task directory and files
 
