@@ -1,5 +1,7 @@
 ---
 description: Initialize a new task or resume an existing one. Creates a task ID, gathers context via Q&A, and persists task state to the repo.
+disable-model-invocation: true
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(mkdir *), Bash(git checkout *), Bash(git branch *)
 ---
 
 # Setup

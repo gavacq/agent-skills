@@ -1,5 +1,7 @@
 ---
 description: Generate a phased implementation plan with checkboxes. The plan is saved to the repo and editable before execution.
+disable-model-invocation: true
+allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
 # Plan

@@ -1,5 +1,7 @@
 ---
 description: Research the codebase and gather information for a task. Intensity is configurable (low, medium, high).
+disable-model-invocation: true
+allowed-tools: Read, Write, Edit, Glob, Grep, Agent, mcp__context7__*
 ---
 
 # Research

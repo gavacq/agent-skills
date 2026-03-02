@@ -1,5 +1,7 @@
 ---
 description: Review code changes for the current task. Intensity is configurable (low, medium, high).
+disable-model-invocation: true
+allowed-tools: Read, Glob, Grep, Edit, Write, Agent, Bash(npm run *), Bash(npx *), Bash(make *), Bash(git diff *)
 ---
 
 # Review

@@ -1,5 +1,7 @@
 ---
 description: Stage and commit changes for the current task with a well-structured commit message.
+disable-model-invocation: true
+allowed-tools: Read, Glob, Grep, Bash(git *)
 ---
 
 # Commit
