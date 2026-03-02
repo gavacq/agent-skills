@@ -10,18 +10,20 @@ Setup → Research → Plan → Implement → Review → Commit
 
 Each phase is a checkpoint. The AI pauses after each phase for human review before proceeding.
 
-## Usage
+## Installation
+
+Load the plugin from your local clone of agent-skills (not committed to the work repo):
 
 ```bash
-claude --plugin-dir ./dev
+claude --plugin-dir /path/to/agent-skills/dev
 ```
 
 ## Tasks
 
-All work is organized as tasks. Each task gets an ID and a directory in the repo:
+Each branch has one task. The task directory lives at the work repo root:
 
 ```
-.dev/tasks/task_<task-id>/
+task_<task-id>/
   state.json       # phase tracking, config, timestamps
   context.md       # original task description and Q&A from setup
   research.md      # findings from research phase
@@ -29,14 +31,14 @@ All work is organized as tasks. Each task gets an ID and a directory in the repo
   review.md        # review findings
 ```
 
-Task files are committed to the repo for tracking and shareability.
+Task files are committed to the branch for tracking and shareability during development. **Remove the task directory before merging to main.**
 
 ## Skills
 
 ### `/dev:setup [task-id-or-context]`
 - Interactive Q&A to gather context: environment, domain, scope, relevant MCPs/tools
 - Generates a task ID from the conversation (or uses one you provide)
-- Creates the task directory with `state.json` and `context.md`
+- Creates the task directory with `state.json` and `context.md` at the repo root
 - Accepts arbitrary input (markdown, Linear tickets, PRs, etc.)
 
 ### `/dev:research <task-id> [low|medium|high]`
@@ -70,7 +72,7 @@ Task files are committed to the repo for tracking and shareability.
 
 ### `/dev:status [task-id]`
 - With a task ID: show phase progress and config
-- Without: list all tasks with summary table
+- Without: list all task directories at repo root
 
 ## Task Tiers
 

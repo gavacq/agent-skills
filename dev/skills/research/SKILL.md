@@ -9,7 +9,7 @@ You are conducting research for a development task. The task ID is provided in `
 
 ## 1. Load task state
 
-Parse `$ARGUMENTS` to extract the task ID and optional intensity override. Read `.dev/tasks/task_<task-id>/state.json` and `.dev/tasks/task_<task-id>/context.md`.
+Parse `$ARGUMENTS` to extract the task ID and optional intensity override. Read `task_<task-id>/state.json` and `task_<task-id>/context.md`.
 
 If the task doesn't exist, tell the user to run `/dev:setup` first.
 
@@ -38,7 +38,7 @@ Use the intensity from `$ARGUMENTS` if provided, otherwise fall back to `researc
 
 ## 3. Write research findings
 
-Create or update `.dev/tasks/task_<task-id>/research.md` with:
+Create or update `task_<task-id>/research.md` with:
 - Summary of findings
 - Key files and their roles (with paths and line numbers)
 - Patterns and conventions to follow
@@ -47,7 +47,7 @@ Create or update `.dev/tasks/task_<task-id>/research.md` with:
 
 ## 4. Update state
 
-Update `.dev/tasks/task_<task-id>/state.json`:
+Update `task_<task-id>/state.json`:
 - Set `phases.research` to `"completed"`
 - Set `phase` to `"research"`
 - Update `updated` timestamp

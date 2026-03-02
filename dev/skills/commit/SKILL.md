@@ -9,7 +9,7 @@ You are committing changes for a development task. The task ID is in `$ARGUMENTS
 
 ## 1. Load task state
 
-Read `.dev/tasks/task_<task-id>/state.json`, `.dev/tasks/task_<task-id>/context.md`, and `.dev/tasks/task_<task-id>/plan.md`.
+Read `task_<task-id>/state.json`, `task_<task-id>/context.md`, and `task_<task-id>/plan.md`.
 
 ## 2. Check readiness
 
@@ -21,7 +21,7 @@ Read `.dev/tasks/task_<task-id>/state.json`, `.dev/tasks/task_<task-id>/context.
 
 Stage the relevant files. Include:
 - All code changes related to the task
-- The task directory files (`.dev/tasks/task_<task-id>/`)
+- The task directory files (`task_<task-id>/`)
 - Do NOT stage files that contain secrets (.env, credentials, etc.)
 
 Use specific file paths rather than `git add -A`.
@@ -42,7 +42,7 @@ After user approval, create the commit.
 
 ## 6. Update state
 
-Update `.dev/tasks/task_<task-id>/state.json`:
+Update `task_<task-id>/state.json`:
 - Set `phases.commit` to `"completed"`
 - Set `phase` to `"commit"`
 - Update `updated` timestamp

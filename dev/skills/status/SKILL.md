@@ -9,7 +9,7 @@ You are reporting on task status. `$ARGUMENTS` may contain a task ID or be empty
 
 ## If a task ID is provided
 
-Read `.dev/tasks/task_<task-id>/state.json` and display:
+Read `task_<task-id>/state.json` and display:
 
 - **Task ID**: the ID
 - **Tier**: small/medium
@@ -22,7 +22,7 @@ Read `.dev/tasks/task_<task-id>/state.json` and display:
 
 ## If no task ID is provided
 
-List all tasks by scanning `.dev/tasks/` directories. For each task, read its state.json and display a summary table:
+List all tasks by scanning for `task_*/state.json` at the repo root. For each task, read its state.json and display a summary table:
 
 | Task ID | Tier | Phase | Progress | Updated |
 |---------|------|-------|----------|---------|

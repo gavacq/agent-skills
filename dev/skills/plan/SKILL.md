@@ -9,7 +9,7 @@ You are creating an implementation plan for a development task. The task ID is i
 
 ## 1. Load task state
 
-Read `.dev/tasks/task_<task-id>/state.json`, `.dev/tasks/task_<task-id>/context.md`, and `.dev/tasks/task_<task-id>/research.md`.
+Read `task_<task-id>/state.json`, `task_<task-id>/context.md`, and `task_<task-id>/research.md`.
 
 If research hasn't been completed yet, ask the user if they want to skip research or run `/dev:research` first.
 
@@ -47,14 +47,14 @@ Each phase should end with a "Verify" step describing what automated checks or m
 
 ## 3. Save the plan
 
-Write the plan to `.dev/tasks/task_<task-id>/plan.md`.
+Write the plan to `task_<task-id>/plan.md`.
 
 ## 4. Update state
 
-Update `.dev/tasks/task_<task-id>/state.json`:
+Update `task_<task-id>/state.json`:
 - Set `phases.plan` to `"completed"`
 - Set `phase` to `"plan"`
-- Set `planFile` to `.dev/tasks/task_<task-id>/plan.md`
+- Set `planFile` to `task_<task-id>/plan.md`
 - Update `updated` timestamp
 
 ## 5. Present for review

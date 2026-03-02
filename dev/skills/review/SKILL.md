@@ -9,7 +9,7 @@ You are reviewing code changes for a development task. The task ID and optional 
 
 ## 1. Load task state
 
-Read `.dev/tasks/task_<task-id>/state.json` and `.dev/tasks/task_<task-id>/plan.md`.
+Read `task_<task-id>/state.json` and `task_<task-id>/plan.md`.
 
 If the task doesn't exist, tell the user to run `/dev:setup` first.
 
@@ -41,7 +41,7 @@ Use the intensity from `$ARGUMENTS` if provided, otherwise fall back to `reviewL
 
 ## 3. Write review findings
 
-Create or update `.dev/tasks/task_<task-id>/review.md` with:
+Create or update `task_<task-id>/review.md` with:
 - Summary (pass/fail/needs-changes)
 - Issues found (with file:line references and severity)
 - Suggestions for improvement
@@ -49,7 +49,7 @@ Create or update `.dev/tasks/task_<task-id>/review.md` with:
 
 ## 4. Update state
 
-Update `.dev/tasks/task_<task-id>/state.json`:
+Update `task_<task-id>/state.json`:
 - Set `phases.review` to `"completed"` (or `"in_progress"` if issues need fixing)
 - Set `phase` to `"review"`
 - Update `updated` timestamp

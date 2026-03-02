@@ -9,7 +9,7 @@ You are implementing the next phase of a development task. The task ID is in `$A
 
 ## 1. Load task state
 
-Read `.dev/tasks/task_<task-id>/state.json` and `.dev/tasks/task_<task-id>/plan.md`.
+Read `task_<task-id>/state.json` and `task_<task-id>/plan.md`.
 
 If no plan exists, tell the user to run `/dev:plan` first.
 
@@ -35,7 +35,7 @@ After completing all steps in the current phase, run the "Verify" step:
 
 ## 5. Update state
 
-Update `.dev/tasks/task_<task-id>/state.json`:
+Update `task_<task-id>/state.json`:
 - Set `phase` to `"implement"`
 - Set `phases.implement` to `"in_progress"`
 - Update `updated` timestamp

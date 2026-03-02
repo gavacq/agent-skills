@@ -9,9 +9,9 @@ You are initializing a development task. Follow these steps:
 
 ## 1. Check for existing task
 
-If the user provides a task ID (e.g., `/dev:setup my-task-id`), check if `.dev/tasks/task_$ARGUMENTS/` exists.
+If the user provides a task ID (e.g., `/dev:setup my-task-id`), check if `task_$ARGUMENTS/` exists.
 
-- If it exists, read `.dev/tasks/task_$ARGUMENTS/state.json` and resume from the current phase. Summarize where things left off and ask the user what they'd like to do next.
+- If it exists, read `task_$ARGUMENTS/state.json` and resume from the current phase. Summarize where things left off and ask the user what they'd like to do next.
 - If it does not exist, treat `$ARGUMENTS` as context for creating a new task (see step 2).
 
 ## 2. Gather context via Q&A
@@ -33,7 +33,7 @@ Based on the Q&A, generate a short, descriptive, kebab-case task ID (e.g., `fix-
 Create the following structure:
 
 ```
-.dev/tasks/task_<task-id>/
+task_<task-id>/
   state.json
   context.md
 ```
