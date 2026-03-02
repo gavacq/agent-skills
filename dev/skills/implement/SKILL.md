@@ -14,6 +14,8 @@ Read `task_<task-id>/state.json` and `task_<task-id>/plan.md`.
 
 If no plan exists, tell the user to run `/dev:plan` first.
 
+If `phases.implement` is `"completed"` in state.json **and** all checkboxes in `plan.md` are checked, ask the user whether they want to re-run implementation or skip this phase. Do not proceed until the user confirms.
+
 ## 2. Find the current phase
 
 Parse the plan markdown. Find the first phase that has unchecked items (`- [ ]`). This is the phase to implement.

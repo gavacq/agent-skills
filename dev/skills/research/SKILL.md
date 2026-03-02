@@ -14,6 +14,8 @@ Parse `$ARGUMENTS` to extract the task ID and optional intensity override. Read 
 
 If the task doesn't exist, tell the user to run `/dev:setup` first.
 
+If `phases.research` is `"completed"` in state.json **and** `task_<task-id>/research.md` exists, ask the user whether they want to regenerate research (overwriting the existing file) or keep it and skip this phase. Do not proceed until the user confirms.
+
 ## 2. Determine research intensity
 
 Use the intensity from `$ARGUMENTS` if provided, otherwise fall back to `researchLevel` in state.json.

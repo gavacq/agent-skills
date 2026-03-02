@@ -14,6 +14,8 @@ Read `task_<task-id>/state.json`, `task_<task-id>/context.md`, and `task_<task-i
 
 If research hasn't been completed yet, ask the user if they want to skip research or run `/dev:research` first.
 
+If `phases.plan` is `"completed"` in state.json **and** `task_<task-id>/plan.md` exists, ask the user whether they want to regenerate the plan (overwriting the existing file) or keep it and skip this phase. Do not proceed until the user confirms.
+
 ## 2. Generate the plan
 
 Based on the context and research, generate a phased implementation plan. Each phase should be:
