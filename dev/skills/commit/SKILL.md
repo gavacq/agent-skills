@@ -56,6 +56,7 @@ Use **Conventional Commits** format. Every commit MUST follow this structure:
 - Always include `Task: <task-id>` as a footer.
 - Keep messages concise — prefer a clear one-line description over a verbose body.
 - If `commitScopes` in state.json is non-empty, prefer scopes from that list. Use scope when the change targets a specific module, component, or subsystem and the description alone wouldn't make that clear.
+- If the commit only updates task artifact files (`task_<task-id>/`), use `_task` as the scope (e.g., `chore(_task): update plan after research`).
 
 Present the commit message to the user for approval before committing.
 
