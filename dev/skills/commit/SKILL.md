@@ -67,9 +67,8 @@ After user approval, create the commit. Do NOT use command substitution (`$(...)
 ## 6. Update state
 
 Update `task_<task-id>/state.json`:
-- Set `phases.commit` to `"completed"`
-- Set `phase` to `"commit"`
 - Update `updated` timestamp
+- Do NOT modify `phase` or `phases` — commit is a utility, not a phase
 
 ## 7. Summary
 

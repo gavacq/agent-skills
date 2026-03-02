@@ -96,14 +96,7 @@ Create or update `task_<task-id>/review.md` with:
 - Suggestions for improvement
 - Automated check results (code reviews only)
 
-## 6. Update state
-
-Update `task_<task-id>/state.json`:
-- Set `phases.review` to `"completed"` (or `"in_progress"` if issues need fixing)
-- Set `phase` to `"review"`
-- Update `updated` timestamp
-
-## 7. Present findings
+## 6. Present findings
 
 Show the user the review results. If issues were found:
 - List them clearly with severity

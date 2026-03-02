@@ -62,24 +62,15 @@ Read `.claude/settings.local.json` in the work repo. If it exists and has a `san
 
 If no sandbox config exists, ask the user if they want to set one up. If yes, walk through each setting:
 
-- **Filesystem writes** — "By default, sandboxed commands can only write to the project directory. Where else does your toolchain write?" Suggest common paths based on detected tools:
-  - Node/pnpm: `~/.local/share/pnpm`, `~/.npm`
-  - Scala/sbt: `~/.sbt`, `~/.ivy2`, `~/.coursier`, `~/.cache`
-  - Python: `~/.cache/pip`, `~/.local`
-  - General: `//tmp`
+- **Filesystem writes** — "By default, sandboxed commands can only write to the project directory. Where else does your toolchain write?" Suggest common paths based on detected tools.
 
-- **Sensitive reads to deny** — "Which paths should be blocked from read access?" Suggest defaults: `~/.aws/credentials`, `~/.ssh`, `~/.gnupg`. Let the user add/remove.
+- **Sensitive reads to deny** — "Which paths should be blocked from read access?" Suggest common paths based on detected tools. Let the user add/remove.
 
-- **Network domains** — "Which registries and APIs does this project need?" Suggest based on toolchain:
-  - npm/pnpm: `registry.npmjs.org`, `*.npmjs.org`
-  - sbt/maven: `repo1.maven.org`, `*.scala-sbt.org`
-  - pip: `pypi.org`, `files.pythonhosted.org`
-  - General: `github.com`, `*.githubusercontent.com`
-  - Project-specific: ask about APIs (e.g., `api.cloudflare.com`, `api.stripe.com`)
+- **Network domains** — "Which registries and APIs does this project need?" Suggest based on toolchain.
 
 - **Local binding** — "Does this project run dev servers on localhost?" If yes, set `allowLocalBinding: true`.
 
-- **Excluded commands** — "Any commands that don't work in sandbox? Docker is a common one." These bypass sandbox but still require permission approval.
+- **Excluded commands** — "Any commands that don't work in sandbox? Docker is a common one." These bypass sandbox but still require permission approval. Let the user add/remove. 
 
 - **Auto-allow** — Recommend `autoAllowBashIfSandboxed: true`. Explain: "Commands within sandbox boundaries run without prompting. Commands outside boundaries still prompt for approval."
 
