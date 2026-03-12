@@ -64,13 +64,7 @@ Present the commit message to the user for approval before committing.
 
 After user approval, create the commit. Do NOT use command substitution (`$(...)`) or heredocs in the `git commit` command — pass the message directly with `-m` flags. For multi-line messages, use multiple `-m` flags (one per paragraph).
 
-## 6. Update state
-
-Update `task_<task-id>/state.json`:
-- Update `updated` timestamp
-- Do NOT modify `phase` or `phases` — commit is a utility, not a phase
-
-## 7. Summary
+## 6. Summary
 
 Tell the user:
 - The commit hash and message

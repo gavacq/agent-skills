@@ -1,7 +1,6 @@
 ---
 description: Run automated checks (lint, test, typecheck, build) in parallel subagents. Reads commands from task state or accepts explicit arguments.
-disable-model-invocation: true
-allowed-tools: Read, Glob, Agent(test-runner)
+allowed-tools: Read, Glob, Grep, Agent(test-runner)
 ---
 
 # Test
@@ -14,21 +13,39 @@ You are running automated checks for a development task. `$ARGUMENTS` may contai
 
 ## 1. Resolve test commands
 
-### From task state (primary)
+Resolution order — use the first source that yields commands:
+
+### 1a. Explicit arguments (highest priority)
+
+If explicit commands are passed via flags (`--lint "cmd"`, `--test "cmd"`, `--typecheck "cmd"`, `--build "cmd"`, `--format "cmd"`), add them to the command set. These always override matching keys from any other source.
+
+### 1b. Task state
 
 If a task ID is provided, read `task_<task-id>/state.json` and extract the `testCommands` object.
 
 If no task ID is provided, scan the repo root for `task_*/state.json` files. If exactly one exists, use it. If multiple exist, list them and ask the user which task to use.
 
-### From arguments (override or standalone)
+### 1c. Infer from project files (fallback)
 
-If explicit commands are passed via flags (`--lint "cmd"`, `--test "cmd"`, `--typecheck "cmd"`, `--build "cmd"`, `--format "cmd"`), use those. If both a task ID and explicit commands are provided, the explicit commands override the corresponding keys from state.json.
+If no task state is found (or `testCommands` is empty), infer commands by reading:
 
-### No commands found
+1. `AGENTS.md` (or `CLAUDE.md`) at the repo root — look for documented test/lint/typecheck commands in code blocks or lists
+2. `package.json` — inspect the `scripts` object for keys matching: `lint`, `test`, `typecheck`, `type-check`, `build`, `format`, `check`
 
-If no test commands can be resolved, tell the user:
-- No test commands are configured for this task
-- Suggest running `/dev:setup` to configure them, or passing commands explicitly
+When building inferred commands, **always prefer low-output variants**:
+- Append `--quiet` or `--silent` flags where the tool supports them
+- Prefer `eslint --fix --quiet` over `eslint`
+- Prefer `vitest run --silent` over `vitest run`
+- Prefer `tsc --noEmit` over `tsc`
+- Skip `build` commands unless the user explicitly requested them (they are slow and rarely needed for review)
+
+Tell the user which commands were inferred and from which source.
+
+### 1d. No commands found
+
+If no commands can be resolved from any source, tell the user:
+- No test commands could be found
+- Suggest adding a `testCommands` field via `/dev:setup`, or passing commands explicitly
 - Show usage: `/dev:test <task-id>` or `/dev:test --lint "eslint . --fix --quiet" --test "vitest run --silent"`
 
 Stop here — do not proceed without commands.
@@ -43,6 +60,8 @@ Pass each agent a prompt like:
 Command name: lint
 Command to run: eslint . --fix --quiet
 ```
+
+If the command fails, return the **complete** error output — do not truncate. The main agent needs the full errors to report to the user.
 
 ## 3. Collect and summarize results
 

@@ -20,10 +20,10 @@ You will receive a command name and the command to run. Your process:
 - **Exit code**: <exit code>
 
 ### Output
-<relevant output — truncate to the most important lines if very long>
+<stdout — truncate to the most important lines if the command passed, but include in full if it failed>
 
 ### Errors
-<error output if any, otherwise "None">
+<complete stderr if the command failed, otherwise "None" — never truncate error output>
 
 ### Summary
 <one sentence describing what happened>
