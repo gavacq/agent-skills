@@ -1,20 +1,24 @@
 ---
-description: Generate a phased implementation plan with checkboxes. The plan is saved to the repo and editable before execution.
+description: Generate a phased implementation plan with checkboxes from context and research in the conversation.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
 # Plan
 
-You are creating an implementation plan for a development task. The task ID is in `$ARGUMENTS`.
+You are creating an implementation plan for a development task.
 
-## 1. Load task state
+## 1. Gather context from conversation
 
-Read `task_<task-id>/state.json`, `task_<task-id>/context.md`, and `task_<task-id>/research.md`.
+Look in the conversation for:
+- Task context (from `/dev:setup` or `/dev:task load`)
+- Research findings (from `/dev:research`)
+- Any other relevant discussion
 
-If research hasn't been completed yet, ask the user if they want to skip research or run `/dev:research` first.
-
-If `phases.plan` is `"completed"` in state.json **and** `task_<task-id>/plan.md` exists, ask the user whether they want to regenerate the plan (overwriting the existing file) or keep it and skip this phase. Do not proceed until the user confirms.
+If no context or research is available in the conversation, ask the user to provide:
+- A description of what needs to be done
+- Relevant files or areas of the codebase
+- Any constraints
 
 ## 2. Generate the plan
 
@@ -25,10 +29,8 @@ Based on the context and research, generate a phased implementation plan. Each p
 
 ### Plan format
 
-Write the plan as a markdown file with this structure:
-
 ```markdown
-# Plan: <task-id>
+# Plan: <task description or id>
 
 ## Summary
 <1-2 sentence description of what this plan accomplishes>
@@ -48,19 +50,7 @@ Write the plan as a markdown file with this structure:
 
 Each phase should end with a "Verify" step describing what automated checks or manual validation to run.
 
-## 3. Save the plan
-
-Write the plan to `task_<task-id>/plan.md`.
-
-## 4. Update state
-
-Update `task_<task-id>/state.json`:
-- Set `phases.plan` to `"completed"`
-- Set `phase` to `"plan"`
-- Set `planFile` to `task_<task-id>/plan.md`
-- Update `updated` timestamp
-
-## 5. Present for review
+## 3. Present for review
 
 Show the user the full plan. Ask them to:
 - Confirm it looks good
@@ -68,6 +58,12 @@ Show the user the full plan. Ask them to:
 - Add, remove, or reorder phases
 - Adjust scope
 
-If the user requests changes, update the plan file and re-present. Do NOT proceed to implementation until the user explicitly approves.
+If the user requests changes, update the plan and re-present.
 
-Suggest `/dev:implement <task-id>` as the next step once approved.
+Do NOT proceed to implementation until the user explicitly approves.
+
+## 4. Suggest next steps
+
+Once the plan is approved, suggest:
+- `/dev:implement` to start implementing the first phase
+- `/dev:task save plan` to persist the plan (if a task is active in the conversation)

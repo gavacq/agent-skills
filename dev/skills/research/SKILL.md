@@ -1,37 +1,29 @@
 ---
-description: Research the codebase and gather information for a task. Intensity is configurable (low, medium, high).
+description: Research the codebase and gather information. Intensity is configurable (low, medium, high).
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Agent(codebase-explorer, pattern-analyzer, prior-work-searcher), mcp__context7__*
 ---
 
 # Research
 
-You are conducting research for a development task. `$ARGUMENTS` may contain a task ID, intensity, and/or a freeform research scope description.
+You are conducting research for a development task. `$ARGUMENTS` contains an optional intensity level and the research topic.
 
 Examples:
-- `/dev:research my-task-id`
-- `/dev:research my-task-id high`
 - `/dev:research how does the auth middleware work`
 - `/dev:research high where are API routes defined`
+- `/dev:research low what tests exist for the parser`
 
-## 1. Load task state (optional)
+## 1. Parse arguments
 
 Parse `$ARGUMENTS` to extract:
-- **Task ID**: a short slug that matches an existing `task_*/` directory (e.g. `my-task-id`)
-- **Intensity**: one of `low`, `medium`, `high`
-- **Scope**: any remaining text is treated as the research topic or question
+- **Intensity**: one of `low`, `medium`, `high` (if the first word matches)
+- **Topic**: all remaining text is the research topic or question
 
-If a task ID is found, read `task_<task-id>/state.json` and `task_<task-id>/context.md`.
+If no intensity is specified, default to `medium`.
 
-If no task ID is recognizable (no matching `task_*/` directory exists), proceed in **taskless mode**: use the scope from `$ARGUMENTS` as the research topic. Do NOT stop or ask the user to run `/dev:setup`.
+If `$ARGUMENTS` is empty, check the conversation for task context (e.g., from a previous `/dev:task load` or `/dev:setup`). Use the task description as the research topic. If no topic can be determined, ask the user what to research.
 
-If `phases.research` is `"completed"` in state.json **and** `task_<task-id>/research.md` exists, ask the user whether they want to regenerate research (overwriting the existing file) or keep it and skip this phase. Do not proceed until the user confirms.
-
-## 2. Determine research intensity
-
-Use the intensity from `$ARGUMENTS` if provided, otherwise fall back to `researchLevel` in state.json. If neither is available, default to `medium`.
-
-Use the task description from `context.md` as the research topic when a task exists. In taskless mode, use the scope from `$ARGUMENTS`.
+## 2. Conduct research
 
 ### Low
 - Read the files directly relevant to the topic
@@ -51,26 +43,17 @@ Use the task description from `context.md` as the research topic when a task exi
 - Cross-reference findings across all three agents
 - Produce a comprehensive research document with architecture notes, dependency maps, and implementation recommendations
 
-## 3. Write research findings
+## 3. Present research findings
 
-If a task exists, create or update `task_<task-id>/research.md`. In taskless mode, present findings directly without writing to disk.
-
-Either way, include:
+Include:
 - Summary of findings
 - Key files and their roles (with paths and line numbers)
 - Patterns and conventions to follow
 - Dependencies and potential impacts
 - Open questions or risks
 
-## 4. Update state
+## 4. Suggest next steps
 
-If a task exists, update `task_<task-id>/state.json`:
-- Set `phases.research` to `"completed"`
-- Set `phase` to `"research"`
-- Update `updated` timestamp
-
-Skip this step in taskless mode.
-
-## 5. Summarize and suggest next step
-
-Tell the user what was found. If a task exists, suggest `/dev:plan <task-id>` as the next step.
+Tell the user what was found. Suggest:
+- `/dev:plan` to generate an implementation plan from the research
+- `/dev:task save research` to persist the findings (if a task is active in the conversation)

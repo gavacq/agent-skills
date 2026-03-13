@@ -1,35 +1,33 @@
 ---
-description: Stage and commit changes for the current task with a well-structured commit message.
+description: Stage all changes and commit with a well-structured conventional commit message. Fire and forget — no confirmation prompts.
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(git *)
 ---
 
 # Commit
 
-You are committing changes for a development task. The task ID is in `$ARGUMENTS`.
+You are committing changes for a development task. This is a fire-and-forget operation — do NOT prompt the user for confirmation at any point. Stage everything, draft the message, and commit immediately.
 
-## 1. Load task state
+## 1. Gather context from conversation
 
-Read `task_<task-id>/state.json`, `task_<task-id>/context.md`, and `task_<task-id>/plan.md`.
+Check the conversation for task context (from `/dev:setup` or `/dev:task load`). If available, note:
+- Task ID (for the `Task:` footer)
+- Commit scopes (for scope selection)
+- Plan (for understanding intent)
 
-## 2. Check readiness
+This context is optional — the commit works without it.
 
-- Run `git status` (to see modified and untracked files) and `git diff` to see what's changed
-- Do NOT run automated checks — use `/dev:test` separately if needed
+## 2. Check what changed
 
-## 3. Stage changes
+Run `git status` and `git diff` to understand the changes.
 
-Stage the relevant files. Include:
-- All modified files related to the task
-- All untracked files created as part of the task (new files, new directories)
-- The task directory files (`task_<task-id>/`)
-- Do NOT stage files that contain secrets (.env, credentials, etc.)
+## 3. Stage all changes
 
-Use specific file paths rather than `git add -A`.
+Run `git add .` from the repo root. Stage everything — do not cherry-pick files.
 
-## 4. Draft commit message
+## 4. Draft and commit
 
-Use **Conventional Commits** format. Every commit MUST follow this structure:
+Use **Conventional Commits** format:
 
 ```
 <type>[(scope)]: <description>
@@ -53,18 +51,13 @@ Use **Conventional Commits** format. Every commit MUST follow this structure:
 
 ### Rules for this skill
 
-- Always include `Task: <task-id>` as a footer.
+- If a task ID is available in the conversation, include `Task: <task-id>` as a footer.
 - Keep messages concise — prefer a clear one-line description over a verbose body.
-- If `commitScopes` in state.json is non-empty, prefer scopes from that list. Use scope when the change targets a specific module, component, or subsystem and the description alone wouldn't make that clear.
-- If the commit only updates task artifact files (`task_<task-id>/`), use `_task` as the scope (e.g., `chore(_task): update plan after research`).
+- If commit scopes are available from conversation context, prefer scopes from that list. Use scope when the change targets a specific module, component, or subsystem and the description alone wouldn't make that clear.
 
-Present the commit message to the user for approval before committing.
+Commit immediately — do NOT ask the user to review or approve the message. Use `-m` flags directly. For multi-line messages, use multiple `-m` flags (one per paragraph).
 
-## 5. Commit
-
-After user approval, create the commit. Do NOT use command substitution (`$(...)`) or heredocs in the `git commit` command — pass the message directly with `-m` flags. For multi-line messages, use multiple `-m` flags (one per paragraph).
-
-## 6. Summary
+## 5. Summary
 
 Tell the user:
 - The commit hash and message

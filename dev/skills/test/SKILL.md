@@ -1,15 +1,15 @@
 ---
-description: Run automated checks (lint, test, typecheck, build) in parallel subagents. Reads commands from task state or accepts explicit arguments.
+description: Run automated checks (lint, test, typecheck, build) in parallel subagents. Reads commands from explicit arguments or project files.
 allowed-tools: Read, Glob, Grep, Agent(test-runner)
 ---
 
 # Test
 
-You are running automated checks for a development task. `$ARGUMENTS` may contain:
+You are running automated checks. `$ARGUMENTS` may contain explicit commands.
 
-- A task ID (e.g., `/dev:test my-task-id`)
-- Explicit commands (e.g., `/dev:test --lint "eslint . --fix --quiet" --test "vitest run --silent"`)
-- Both (task ID with overrides)
+Examples:
+- `/dev:test`
+- `/dev:test --lint "eslint . --fix --quiet" --test "vitest run --silent"`
 
 ## 1. Resolve test commands
 
@@ -19,15 +19,13 @@ Resolution order — use the first source that yields commands:
 
 If explicit commands are passed via flags (`--lint "cmd"`, `--test "cmd"`, `--typecheck "cmd"`, `--build "cmd"`, `--format "cmd"`), add them to the command set. These always override matching keys from any other source.
 
-### 1b. Task state
+### 1b. Conversation context
 
-If a task ID is provided, read `task_<task-id>/state.json` and extract the `testCommands` object.
-
-If no task ID is provided, scan the repo root for `task_*/state.json` files. If exactly one exists, use it. If multiple exist, list them and ask the user which task to use.
+If no explicit commands are provided, check the conversation for test commands from a previous `/dev:setup` or `/dev:task load`. Use `testCommands` if available.
 
 ### 1c. Infer from project files (fallback)
 
-If no task state is found (or `testCommands` is empty), infer commands by reading:
+If no commands are available, infer them by reading:
 
 1. `AGENTS.md` (or `CLAUDE.md`) at the repo root — look for documented test/lint/typecheck commands in code blocks or lists
 2. `package.json` — inspect the `scripts` object for keys matching: `lint`, `test`, `typecheck`, `type-check`, `build`, `format`, `check`
@@ -45,14 +43,14 @@ Tell the user which commands were inferred and from which source.
 
 If no commands can be resolved from any source, tell the user:
 - No test commands could be found
-- Suggest adding a `testCommands` field via `/dev:setup`, or passing commands explicitly
-- Show usage: `/dev:test <task-id>` or `/dev:test --lint "eslint . --fix --quiet" --test "vitest run --silent"`
+- Suggest passing commands explicitly
+- Show usage: `/dev:test --lint "eslint . --fix --quiet" --test "vitest run --silent"`
 
 Stop here — do not proceed without commands.
 
 ## 2. Launch parallel test-runner agents
 
-For each entry in the resolved `testCommands` object, launch a `test-runner` agent using the Agent tool. Launch **all agents in a single message** so they run in parallel.
+For each entry in the resolved commands, launch a `test-runner` agent using the Agent tool. Launch **all agents in a single message** so they run in parallel.
 
 Pass each agent a prompt like:
 
@@ -67,7 +65,7 @@ If the command fails, return the **complete** error output — do not truncate. 
 
 After all agents complete, produce a summary:
 
-### Test Results: <task-id or "standalone">
+### Test Results
 
 | Check | Status |
 |-------|--------|
@@ -85,7 +83,3 @@ If any checks failed, include the error output from each failing agent under a s
 <error details from the test-runner agent>
 
 If all checks pass, just show: **All checks passed.**
-
-## 4. No state update
-
-This skill does NOT update state.json. It is a standalone utility that can run at any time. Other skills (implement, review, commit) may run automated checks independently — this skill is for explicit, parallel execution.

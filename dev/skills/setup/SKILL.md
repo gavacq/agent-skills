@@ -1,12 +1,12 @@
 ---
-description: Initialize a new task or resume an existing one. Creates a task ID, gathers context via Q&A, and persists task state to the repo.
+description: Gather context for a new development task via structured Q&A. Outputs a task summary to the conversation.
 disable-model-invocation: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(mkdir *), Bash(git checkout *), Bash(git branch *), Bash(git log *)
+allowed-tools: Read, Glob, Grep, Bash(git checkout *), Bash(git branch *), Bash(git log *)
 ---
 
 # Setup
 
-You are initializing a development task. Follow these steps:
+You are gathering context for a new development task. Follow these steps:
 
 ## 1. Resolve task ID
 
@@ -15,11 +15,6 @@ Try to determine the task ID in this order:
 1. **Explicit argument**: If the user provides a task ID via `$ARGUMENTS`, use that.
 2. **Branch name**: Run `git branch --show-current`. If the branch name is not `main` or `master`, use it as the task ID (it should already be kebab-case).
 3. **Build from context**: If neither of the above yields a task ID, proceed to Q&A (step 2) and generate one from the gathered context.
-
-Once you have a candidate task ID, check if `task_<task-id>/` exists:
-
-- If it exists, read `task_<task-id>/state.json` and resume from the current phase. Summarize where things left off and ask the user what they'd like to do next.
-- If it does not exist, continue to step 2 to create a new task.
 
 ## 2. Gather context via Q&A
 
@@ -56,7 +51,7 @@ Help the user set up Claude Code sandbox configuration for the work repo. This c
 
 ### Check existing config
 
-Read `.claude/settings.local.json` in the work repo. If it exists and has a `sandbox` key, show the current config to the user and ask if they want to change it. If satisfied, skip to §3.
+Read `.claude/settings.local.json` in the work repo. If it exists and has a `sandbox` key, show the current config to the user and ask if they want to change it. If satisfied, skip to step 3.
 
 ### Walk through settings
 
@@ -70,7 +65,7 @@ If no sandbox config exists, ask the user if they want to set one up. If yes, wa
 
 - **Local binding** — "Does this project run dev servers on localhost?" If yes, set `allowLocalBinding: true`.
 
-- **Excluded commands** — "Any commands that don't work in sandbox? Docker is a common one." These bypass sandbox but still require permission approval. Let the user add/remove. 
+- **Excluded commands** — "Any commands that don't work in sandbox? Docker is a common one." These bypass sandbox but still require permission approval. Let the user add/remove.
 
 - **Auto-allow** — Recommend `autoAllowBashIfSandboxed: true`. Explain: "Commands within sandbox boundaries run without prompting. Commands outside boundaries still prompt for approval."
 
@@ -82,47 +77,10 @@ Present the full generated config to the user for review before writing. Write t
 
 If the task ID was resolved from the branch name or argument, present it for confirmation. If it was not resolved yet, generate a short, descriptive, kebab-case ID from the Q&A context (e.g., `fix-auth-redirect`, `add-daily-quest-logic`). Present the proposed ID and let the user confirm or adjust.
 
-## 4. Create task directory and files
+## 4. Present summary
 
-Create the following structure:
-
-```
-task_<task-id>/
-  state.json
-  context.md
-```
-
-### state.json
-
-```json
-{
-  "id": "<task-id>",
-  "tier": "small|medium",
-  "phase": "setup",
-  "researchLevel": "low|medium|high",
-  "reviewLevel": "low|medium|high",
-  "created": "<ISO timestamp>",
-  "updated": "<ISO timestamp>",
-  "phases": {
-    "setup": "completed",
-    "research": "pending",
-    "plan": "pending",
-    "implement": "pending"
-  },
-  "tools": ["list", "of", "relevant", "mcps"],
-  "commitScopes": [],
-  "testCommands": {},
-  "planFile": null
-}
-```
-
-Set default research/review levels based on tier:
-- **Small**: research=low, review=low
-- **Medium**: research=medium, review=medium
-
-### context.md
-
-Write a markdown file capturing all the context gathered in the Q&A. Include:
+Build the context summary from the Q&A, including:
+- Task ID
 - Task description
 - Tier and scope
 - Relevant tools/MCPs
@@ -131,12 +89,8 @@ Write a markdown file capturing all the context gathered in the Q&A. Include:
 - Commit scopes (list discovered/configured scopes, or "None — scopes not used")
 - Test commands (list each configured command, or "None configured")
 
-## 5. Confirm and summarize
+Present the full summary to the user for review.
 
 Tell the user:
-- The task ID
-- The task directory path
-- Current phase (setup — completed)
-- Next suggested action (e.g., `/dev:research <task-id>`)
-
-Remind the user that task files are committed to the repo for tracking.
+- To persist this task, run `/dev:task create`
+- To start research without persisting, run `/dev:research <topic>`
