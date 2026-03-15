@@ -1,6 +1,5 @@
 ---
 description: Stage all changes and commit with a well-structured conventional commit message. Fire and forget — no confirmation prompts.
-disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(git *)
 ---
 

@@ -1,6 +1,6 @@
 ---
-name: task-adapter
-description: Handles task persistence operations by dispatching to the configured adapter backend (local files, Linear, etc.).
+name: task-adapter-local
+description: Handles task persistence operations using the local file backend
 tools: Read, Write, Edit, Glob
 model: sonnet
 maxTurns: 12

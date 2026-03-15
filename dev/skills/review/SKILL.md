@@ -1,6 +1,5 @@
 ---
 description: Review code changes or a planning doc. Operates on unstaged changes (default), a commit range, or a plan from the conversation. Intensity is configurable (low, medium, high).
-disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Edit, Write, Skill, Agent(correctness-reviewer, security-reviewer, architecture-reviewer), Bash(git diff *), Bash(git log *)
 ---
 

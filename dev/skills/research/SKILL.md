@@ -1,6 +1,5 @@
 ---
 description: Research the codebase and gather information. Intensity is configurable (low, medium, high).
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Agent(codebase-explorer, pattern-analyzer, prior-work-searcher), mcp__context7__*
 ---
 

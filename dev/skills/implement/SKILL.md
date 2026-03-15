@@ -1,6 +1,5 @@
 ---
 description: Execute the next phase of the implementation plan from the conversation. Stops after each phase for review.
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent(codebase-explorer, pattern-analyzer, test-runner)
 ---
 

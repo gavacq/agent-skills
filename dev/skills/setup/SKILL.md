@@ -1,6 +1,5 @@
 ---
 description: Gather context for a new development task via structured Q&A. Outputs a task summary to the conversation.
-disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(git checkout *), Bash(git branch *), Bash(git log *)
 ---
 

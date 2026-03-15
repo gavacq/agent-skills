@@ -1,7 +1,6 @@
 ---
 description: Manage task persistence — create, load, save artifacts, update phase, and show status. Single entry point for all adapter interaction.
-disable-model-invocation: true
-allowed-tools: Read, Glob, Agent(task-adapter)
+allowed-tools: Read, Glob, Agent(task-adapter-local), Agent(task-adapter-notion)
 ---
 
 # Task
@@ -20,9 +19,18 @@ You are managing task persistence. `$ARGUMENTS` contains a subcommand and option
 
 ## Resolve adapter
 
-Read `.dev-config.json` at the repo root. If it exists and has a `taskAdapter` field, use `dev/task-adapters/<taskAdapter>.md` as the adapter file path. Otherwise default to `dev/task-adapters/local.md`.
+Read `.dev-config.json` at the repo root. If it exists and has a `taskAdapter` field, use that value; otherwise default to `local`.
+
+Map the adapter name to an agent and adapter file path:
+
+| `taskAdapter` value | Agent | Adapter file |
+|---------------------|-------|--------------|
+| `local` (or absent) | `task-adapter-local` | `dev/task-adapters/local.md` |
+| `notion` | `task-adapter-notion` | `dev/task-adapters/notion.md` |
 
 If the adapter file does not exist, tell the user: "No task adapter configured. Create `.dev-config.json` with a `taskAdapter` field, or ensure `dev/task-adapters/local.md` exists."
+
+Use the resolved agent name and adapter file path in all subcommand invocations below.
 
 ## Subcommands
 
@@ -44,7 +52,7 @@ Derive `researchLevel` and `reviewLevel` from tier: small → low, medium → me
 
 Spawn the task-adapter agent:
 
-> Agent(task-adapter):
+> Agent(<resolved-agent>):
 > Adapter file: \<adapter path\>
 > ---
 > Operation: create-task
@@ -63,7 +71,7 @@ Report the created task ID and suggest next steps.
 
 Load a task's full state and artifacts into the conversation.
 
-> Agent(task-adapter):
+> Agent(<resolved-agent>):
 > Adapter file: \<adapter path\>
 > ---
 > Operation: load-task
@@ -87,7 +95,7 @@ Save an artifact to the task. `$ARGUMENTS` format: `save <type> [content]`
 
 If no task ID is in the conversation context, ask the user for it.
 
-> Agent(task-adapter):
+> Agent(<resolved-agent>):
 > Adapter file: \<adapter path\>
 > ---
 > Operation: save
@@ -104,7 +112,7 @@ Update a task's phase status. `$ARGUMENTS` format: `update <phase> <status>`
 - `phase` is one of: `setup`, `research`, `plan`, `implement`
 - `status` is one of: `pending`, `in_progress`, `completed`
 
-> Agent(task-adapter):
+> Agent(<resolved-agent>):
 > Adapter file: \<adapter path\>
 > ---
 > Operation: update-phase
@@ -120,7 +128,7 @@ Show task status. If a task ID is provided, show details. If not, list all tasks
 
 **With task ID:**
 
-> Agent(task-adapter):
+> Agent(<resolved-agent>):
 > Adapter file: \<adapter path\>
 > ---
 > Operation: load-task
@@ -135,7 +143,7 @@ Display:
 
 **Without task ID:**
 
-> Agent(task-adapter):
+> Agent(<resolved-agent>):
 > Adapter file: \<adapter path\>
 > ---
 > Operation: list-tasks

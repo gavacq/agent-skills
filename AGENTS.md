@@ -25,7 +25,8 @@ dev/
     security-reviewer.md       # Review: security vulnerabilities, performance
     architecture-reviewer.md   # Review: architectural consistency, design
     test-runner.md             # Test: execute a single check command (haiku)
-    task-adapter.md            # Persistence: dispatch task CRUD to configured backend
+    task-adapter-local.md      # Persistence: task CRUD via local file backend
+    task-adapter-notion.md     # Persistence: task CRUD via Notion backend
   task-adapters/               # Backend implementations for task persistence
     CONTRACT.md                # Adapter interface specification (5 operations)
     local.md                   # Local file adapter (task_<id>/ directories)
@@ -64,15 +65,16 @@ Steps 2, 4, 6 are optional — the workflow works without any persistence.
 
 **Agents**: The `agents/` directory contains subagent definitions that skills invoke via the Agent tool. Research and review skills at medium/high intensity delegate to specialized agents for parallel analysis. The `test-runner` agent is a lightweight (haiku model) agent that executes a single check command — the `/dev:test` skill launches multiple test-runner instances in parallel. The implement skill can also delegate exploration or pattern analysis to agents when it would save context or improve results.
 
-**Task persistence**: The `/dev:task` skill owns all adapter interaction. It reads `.dev-config.json` at the repo root to determine which backend to use (defaults to `local`). It spawns the `task-adapter` agent, which reads the adapter file and follows backend-specific instructions.
+**Task persistence**: The `/dev:task` skill owns all adapter interaction. It reads `.dev-config.json` at the repo root to determine which backend to use (defaults to `local`). It spawns the per-adapter agent (`task-adapter-local` or `task-adapter-notion`), which reads the adapter file and follows backend-specific instructions. Each agent is scoped to only the tools its backend requires (local: file tools; notion: Notion MCP tools).
 
 **Adapter contract**: `dev/task-adapters/CONTRACT.md` defines the formal interface that any adapter must implement — 5 operations with typed inputs/outputs, required behaviors, and error responses.
 
-**Task adapters**: Backend implementations that the task-adapter agent follows:
+**Task adapters**: Backend implementations that per-adapter agents follow:
 - `local.md` — stores state and artifacts as files in `task_<id>/` directories at the repo root
+- `notion.md` — stores state as Notion database page properties, artifacts as child sub-pages
 - `linear.md` — maps tasks to Linear issues and artifacts to comments (skeleton, not yet implemented)
 
-To add a new backend, create a new `.md` file in `task-adapters/` implementing all operations from `CONTRACT.md` and update the agent's tool list if the backend requires additional tools (e.g., MCP tools).
+To add a new backend: create a new `.md` file in `task-adapters/` implementing all operations from `CONTRACT.md`, create a matching `agents/task-adapter-<name>.md` scoped to only its required tools, and add the mapping to `/dev:task`'s resolve adapter table.
 
 **Skill file format**: Each `SKILL.md` has YAML frontmatter with `description`, `disable-model-invocation: true`, and `allowed-tools` (granular per-skill tool permissions). The body is markdown instructions that Claude follows when the skill is invoked.
 
@@ -82,7 +84,7 @@ To add a new backend, create a new `.md` file in `task-adapters/` implementing a
 
 - Skills have no `name` field in frontmatter — namespacing comes from the directory name under `skills/` combined with the plugin name.
 - `allowed-tools` should be scoped as narrowly as possible per skill (principle of least privilege). Bash commands use glob patterns (e.g., `Bash(git diff *)`). Agent access is scoped to named agents (e.g., `Agent(test-runner)`).
-- `disable-model-invocation: true` is set on all skills to prevent automatic triggering — skills must be explicitly invoked.
+- Skills do not set `disable-model-invocation: true` — they can be invoked explicitly by the user, by the Skill tool, or by the model.
 - Skills are stateless — they read from and output to the conversation. Only `/dev:task` interacts with persistence.
 - Commits use Conventional Commits format (see `dev/skills/commit/SKILL.md`).
 - Test commands combine fix + quiet flags where possible (e.g., `eslint --fix --quiet`) so a single invocation auto-fixes and reports only remaining issues.

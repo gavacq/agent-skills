@@ -1,6 +1,5 @@
 ---
 description: Generate a phased implementation plan with checkboxes from context and research in the conversation.
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 

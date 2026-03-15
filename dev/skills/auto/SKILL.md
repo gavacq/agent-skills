@@ -1,6 +1,5 @@
 ---
 description: Autonomous dev agent — accepts a task and handles the full workflow
-disable-model-invocation: true
 allowed-tools: Agent(dev-agent)
 ---
 
