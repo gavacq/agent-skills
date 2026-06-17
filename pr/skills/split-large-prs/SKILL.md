@@ -2,11 +2,12 @@
 name: split-large-prs
 description: >-
   Splits oversized or mixed-concern branches into small, reviewable PR stacks
-  with backwards-compatible deploy ordering, safety refs, parity audits, and
-  visual review output (Cursor Canvas when available). Use when the user asks to
-  split a PR or branch, when a diff is too large to review, when stacking
-  reviewable chunks, when planning migration-safe change sequences, or when
-  decomposing work without modifying the source branch.
+  with backwards-compatible deploy ordering, safety refs, per-branch build/test
+  validation before PR creation, parity audits, and visual review output (Cursor
+  Canvas when available). Use when the user asks to split a PR or branch, when a
+  diff is too large to review, when stacking reviewable chunks, when planning
+  migration-safe change sequences, or when decomposing work without modifying
+  the source branch.
 disable-model-invocation: true
 ---
 
@@ -17,10 +18,12 @@ Transform a large branch into a sequence of small, high-quality PRs optimized fo
 ## Hard rules
 
 - Do not create branches, commit, push, or open PRs until the user approves the split plan.
+- **Build and test every split branch locally before push or PR creation.** A split plan is not done until each branch compiles and passes scoped tests. Never open PRs from a plan-only or unverified execution — that produces CI failures and **hallucinated splits** (branches that do not match the plan, omit files, or never built).
 - Never discard user work. No destructive git commands (`reset --hard`, `clean -fdx`, branch deletion, force-push, history rewrite) without explicit approval.
 - Always save a recoverable snapshot before moving work around.
 - Stage only named files or hunks. No `git add .` / `git add -A`.
 - **Never modify the source branch.** Treat it as read-only — no commits, resets, rebases, or amends. Create all split branches *off* the source with a suffix (e.g. `<source-branch>-pr1-<slice>`, `<source-branch>-split-01`). Record the source tip SHA before execution and verify it is unchanged after.
+- **Verify from git, not memory.** Every file assignment, parity claim, and build-success report must come from actual `git` output and executed commands — not from the approved plan document or assumed cherry-pick results.
 
 ## Sizing targets
 
@@ -63,8 +66,10 @@ Reviewers may reasonably reject a PR solely because it is too large to review we
 3. Plan backwards-compatible deploy ordering.
 4. Output split plan for visual review; get approval.
 5. Execute on suffixed branches with safety refs.
-6. Audit parity and completeness.
-7. Report back.
+6. **Build and test each split branch individually** (mandatory gate before push/PRs).
+7. Audit parity and completeness.
+8. Push and open PRs — only after step 6 passes (or user explicitly accepts documented failures).
+9. Report back.
 
 ## Step 1 — Quantify branch shape
 
@@ -210,32 +215,94 @@ Execution rules:
 - Never check out or commit onto the source branch.
 - Each split branch is created off the source (or off the prior split branch when stacking) with a suffixed name: `<source-branch>-pr<N>-<slice>`.
 - For mixed commits: `git cherry-pick -n <commit>`, then stage only owned files/hunks.
-- Verify staged file list before every commit.
+- Verify staged file list before every commit (`git diff --cached --name-only` must match the slice's planned files).
 - Commit with a message explaining WHY, not just what.
-- Push and open PRs.
+- **Do not push or open PRs in this step.** Execution ends at local branches + commits; validation is step 6.
 
 After execution, verify `git rev-parse <source-branch>` still equals `SOURCE_SHA`.
 
-## Step 6 — Audit before confidence
+## Step 6 — Build and test each split branch (mandatory before PRs)
+
+**Strong recommendation treated as a hard gate:** check out, build, and test every split branch before push or PR creation. Skipping this step is the main cause of broken stacked PRs and hallucinated splits — agents report success from the plan without proving each branch compiles.
+
+### Per-branch validation loop
+
+For each split branch, in merge order:
+
+1. **Check out the branch** (`git checkout <split-branch>`).
+2. **Confirm scope vs plan** — diff against the branch's PR base (default branch for independent PR1; prior split branch or default for stacked slices):
+
+```bash
+# Independent PR off master/default:
+git diff origin/master...HEAD --stat
+
+# Stacked PR2 off PR1 branch:
+git diff feat/foo-pr1-contract...HEAD --stat
+```
+
+The file list must match the approved slice. If it does not, fix the branch before building — do not open a PR and hope CI catches it.
+
+3. **Build affected packages** — use the repo's standard commands for touched workspaces (e.g. Spare: `pnpm run --filter="<package>" build`; rebuild `lib/*` before consuming services). Run builds for **this branch's diff only**, not the whole monorepo unless required.
+
+4. **Run scoped tests** — tests that exercise the slice's behavior (package test script, specific test files from the plan's Tests column). Fix failures on the owning split branch.
+
+5. **Record evidence** — note branch name, build command(s), test command(s), and pass/fail. Do not claim green builds without executed commands and exit code 0.
+
+6. **Re-validate downstream stacks** — if a stacked branch fails after an upstream fix, rebuild/test from the fixed branch upward.
+
+### Anti-hallucination checks
+
+Before any push or PR:
+
+- [ ] Every split branch exists locally (`git branch --list '<source-branch>-pr*'`).
+- [ ] Each branch's `git diff` vs its declared base matches the approved plan (no missing/extra files).
+- [ ] Build + test commands were **run**, not inferred from the source branch or plan.
+- [ ] Parity audit (step 7) uses `git diff` across branches, not a mental union of the plan table.
+- [ ] If execution was partial (only some slices created), report that explicitly — do not describe the full sequence as complete.
+
+### When validation fails
+
+1. Fix on the **owning split branch** (see "After the split — fixing code").
+2. Re-run build/test on that branch and any downstream stacked branches.
+3. Re-run parity audit if files moved between slices.
+4. Only proceed to push/PRs when all slices pass, unless the user explicitly accepts opening PRs with known failures (document which branches fail and why).
+
+## Step 7 — Audit before confidence
 
 A split is incomplete until all gates pass or deviations are documented:
 
-- [ ] Union of all split diffs equals the original net diff — no missing files
+- [ ] Union of all split diffs equals the original net diff — no missing files (verify with `git diff`, not the plan alone)
 - [ ] No unexpected extra files
 - [ ] Per-file parity or intentional documented divergence
 - [ ] Deletion semantics preserved
 - [ ] Each branch scope matches its stated PR intent
+- [ ] **Each split branch built successfully** (commands recorded in step 6)
+- [ ] **Each split branch passed scoped tests** (commands recorded in step 6)
 - [ ] Source branch tip SHA unchanged
 
-## Step 7 — Report back
+Do not push or open PRs until this audit and step 6 both pass, unless the user explicitly overrides.
+
+## Step 8 — Push and open PRs
+
+Only after steps 5–7 succeed:
+
+- Push each split branch (`git push -u origin <split-branch>`).
+- Open PRs with bases matching topology (default branch vs stacked parent).
+- PR descriptions should reference build/test commands run and merge order.
+
+If step 6 was skipped or failed for any slice, **do not open PRs** without calling that out and getting explicit user approval.
+
+## Step 9 — Report back
 
 Keep it short:
 
-- PR titles and URLs
+- PR titles and URLs (only if step 8 completed)
 - Merge order
 - Deploy-before notes (which PRs must be deployed before later PRs can merge)
+- **Build/test summary** — per-branch commands and pass/fail from step 6
 - Audit summary (pass/fail per gate)
 - Anything left on the starting branch or working tree
+- Any slices not yet built, tested, or opened as PRs
 
 Do not delete the backup ref or source branch unless the user asks.
 
@@ -264,7 +331,7 @@ git checkout feat/foo-pr4-comm-service
 git rebase feat/foo-pr3-webhooks
 ```
 
-4. Re-run tests for that slice. No parity re-audit unless the fix moves files between slices.
+4. Re-run tests for that slice and Step 6 build/test if the fix is non-trivial. Re-run Step 7 parity audit if the fix moves files between slices.
 
 ### Fix spans multiple slices
 
@@ -280,7 +347,7 @@ Do not duplicate the same logical fix across PRs unless each PR must stand alone
 1. Move hunks to the correct split branch (`git cherry-pick -n`, `git restore --staged`, or patch).
 2. Remove from the wrong branch.
 3. Rebase downstream stack.
-4. **Re-run Step 6 parity audit** — union of splits should still match your intended end state (may differ from original source if fixes improved the design; document that).
+4. **Re-run Step 7 parity audit** — union of splits should still match your intended end state (may differ from original source if fixes improved the design; document that). Re-run **Step 6** build/test on affected branches.
 
 ### Some PRs already merged
 
@@ -308,6 +375,7 @@ Do not duplicate the same logical fix across PRs unless each PR must stand alone
 - [ ] Change lives on the correct owning branch
 - [ ] Downstream stacked PRs rebased if needed
 - [ ] Deploy-order / prSafetyCheck policies still satisfied
+- [ ] Step 6 build/test still passes on affected branches
 - [ ] Open PR descriptions still match what each PR does
 - [ ] Source branch tip unchanged (if you are still using it as reference)
 
@@ -320,6 +388,11 @@ Do not duplicate the same logical fix across PRs unless each PR must stand alone
 
 ## Common mistakes
 
+- **Opening PRs before building/testing each split branch** — CI becomes the first compile check; reviewers get broken stacks.
+- **Hallucinated splits** — reporting parity, file lists, or green builds from the plan document without checking out branches and running `git diff` + build/test commands.
+- **Assuming cherry-picks worked** — staging the wrong hunks or leaving transitive deps on a later slice breaks compile; always `git diff --cached --name-only` before commit and build after.
+- **Testing only the source branch** — the source may build while an individual slice omits required imports, types, or lib rebuilds.
+- **Stacked PR false positives** — PR3 "passes" only because it includes PR1+PR2; validate each branch's incremental diff against its declared base.
 - Mixing broad formatting changes with functional logic.
 - Landing a new abstraction with no real usage.
 - Creating a stacked sequence where intermediate PRs break the build.
