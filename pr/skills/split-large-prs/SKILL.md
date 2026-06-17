@@ -76,6 +76,7 @@ Collect objective signals before proposing solutions:
 - Mixed-concern commits (one commit touching unrelated areas).
 - Dependency density between concerns.
 - Ownership signals (`CODEOWNERS`, nested ownership files, `tools/ownership/PRODUCTOWNERS`, or repo equivalents).
+- Deploy-order hotspots — if the repo has `lib/ci/src/prSafetyCheck/rules/`, skim applicable policies (contracts, permissions, enums, migration backward-compat) while mapping concerns.
 
 Use chat history and any user-provided docs to recover intent.
 
@@ -119,10 +120,47 @@ If the user is unsure, recommend one option and explain what changes under the a
 
 Each PR must leave the system working after merge.
 
+> **Migrations always run before the corresponding service deploys.** That ordering is fixed by the pipeline — it is **not** a deploy-order concern and must **not** drive PR splits or "deploy-before" edges between a migration PR and service-code PR for the same service.
+
 Distinguish two dependency types:
 
 - **Depends-on (merge)** — later PR needs an earlier PR merged into the base branch.
-- **Deploy-before** — later PR needs an earlier PR **deployed to production** (or the relevant environment), not just merged.
+- **Deploy-before** — later PR needs an earlier PR **deployed to production** (or the relevant environment), not just merged. Use only for **cross-deployable-unit** boundaries (contracts, shared libs, permissions, enums, etc.) — not migration-then-service within one service.
+
+### What is NOT a deploy-order split concern
+
+**Do not split or sequence PRs because "the migration must deploy before the service code."** Migrations always run before the corresponding service deploys; the deploy pipeline guarantees that.
+
+Migration-related splits are still needed when a **single PR** combines a migration with code changes that would break **old service instances still running after the migration executes** (expand/contract, drop-column-after-code-removal, etc.). That is backward-compatibility within a rolling deploy — old pods vs new schema — not migration-vs-code ordering.
+
+### What IS a deploy-order split concern
+
+Services, frontends, and mobile apps deploy **independently** with canary rollouts — old and new versions coexist. Split PRs so each slice is safe regardless of deploy order unless you explicitly document a required sequence.
+
+Prioritize boundaries where **different deployable units** must agree:
+
+| Boundary | Why it matters | Typical safe split |
+|----------|----------------|-------------------|
+| **API / client contracts** (`lib/*-client`, OAS, ts-rest routers) | Caller may deploy before callee exposes endpoint, or old consumer hits new provider | Contract/OAS first (additive, optional fields); caller in later PR. New endpoint + caller in same PR → violation unless feature-flagged or try/catch fallback. |
+| **Shared libs consumed by multiple services** | Each service picks up the lib on its own schedule | Expand lib first (backward-compatible exports); tighten or remove in cleanup PR after all consumers updated. |
+| **Service permissions** (`lib/service-permissions`) | Service B enforces permissions from its copy; Service A needs grant before use | Phase 1: add grant to `<Service>Permissions.ts`. Phase 2: code that calls or enforces. Never new permission + new usage in one PR. |
+| **RBAC / permission checks** (`lib/permissions`, `sparelabs-api` routes) | Tightening OWN-only checks can break S2S callers with `GET_ANY_*` | Permission definition or grant PR before enforcement PR; verify `buildService` paths. |
+| **Enum values in OAS + DB** | Old instances validate responses against old OAS; new DB values fail validation | Phase 1: OAS accepts new value only. Phase 2: migration + logic that writes the value. |
+| **Pub/Sub event schemas** (`lib/events`) | Subscriber validates on receive; incompatible publish breaks old subscribers | Add optional fields first; subscribers before publishers for required fields. |
+| **Redis / job payloads / sockets / GCS formats** | Async or cross-version data survives deploy window | Schema-expand first; consumers tolerant of old format; drain queues before removing fields. |
+| **Micro-frontends / admin apps** | Frontend and backend deploy separately | Coordinate contract changes; see micro-frontend rules when applicable. |
+
+When splitting for the Spare monorepo (or any repo with equivalent CI), read and apply policies in `lib/ci/src/prSafetyCheck/rules/` — the PR safety check evaluates diffs against these files. At minimum, scan for:
+
+- `database-migration-backward-compatibility.md` — destructive migration + code removal in same PR
+- `general-breaking-changes.md` — contracts, events, Redis, jobs, sockets, storage
+- `service-permission-deployment-order.md` — grant before use/enforce
+- `rbac-permission-check-changes.md` — S2S regressions from tightened checks
+- `enum-value-deployment-order.md` — OAS before DB/logic for new enum values
+
+Call out any planned split that would still fail these checks if merged as-is.
+
+### Expand/contract for schema and APIs
 
 For schema, data, API, or infrastructure migrations, prefer an **expand/contract** sequence:
 
@@ -132,7 +170,11 @@ For schema, data, API, or infrastructure migrations, prefer an **expand/contract
 4. **Cut over** — switch traffic or callers after validation proves both paths are safe.
 5. **Contract** — remove old schema, code paths, flags, and compatibility shims in a cleanup PR.
 
-Each migration PR must state: deployment order, rollback behavior, validation signal, and what must not happen until the next PR lands.
+Each migration PR must state: rollback behavior, validation signal, and what must not happen until the next PR lands. Do **not** mark "deploy-before next" for migration→service within the same service unless the concern is cross-unit (e.g. enum OAS in lib deployed before telecoms-service writes the value).
+
+### Split-plan deploy-before column
+
+Use **Deploy-before next?** only for real cross-deployable-unit dependencies (contract published, permission granted, OAS extended, consumer gated). Use **Depends-on (merge)** for compile-time or repo ordering. **Never** use deploy-before for "migration must run before service" — that always happens automatically. When in doubt, prefer a two-phase split over a single PR with a deploy-order footgun.
 
 ## Step 4 — Split plan output for review
 
@@ -144,7 +186,7 @@ Render the split plan as the **primary review artifact**:
 Contents:
 
 - **PR sequence table** with columns: `# | PR title | Purpose (one concern) | Depends-on (merge) | Deploy-before next? | Approx lines (authored) | Tests | Reviewer notes`
-- **Backwards compatibility / migration panel** — expand/contract phase, backfill/validation, observability, rollback
+- **Backwards compatibility / migration panel** — expand/contract phase, cross-unit deploy-before boundaries (contracts, permissions, enums — not migration-before-code), prSafetyCheck policy hits, rollback
 - **Dependency/sequence diagram** when there are multiple slices
 - **Visual flags** on any PR exceeding the 400-line ideal or 800-line hard cap (authored lines only — see Sizing targets)
 
@@ -197,6 +239,78 @@ Keep it short:
 
 Do not delete the backup ref or source branch unless the user asks.
 
+## After the split — fixing code (review or your own concerns)
+
+Splits are not frozen. Expect iteration. Follow these rules so fixes stay reviewable and deploy-safe.
+
+### Default: fix on the owning split branch
+
+Put each change on the **split branch for the PR that owns that concern** — not on the read-only source branch.
+
+- Review on PR3 (webhooks) → commit on `feat/foo-pr3-webhooks`.
+- Local concern before opening PRs → same: edit the relevant split branch directly.
+
+The source branch stays a **reference snapshot** until all slices are merged (or you abandon the split). Do not treat it as the place to accumulate fixes.
+
+### Localized fix (one slice)
+
+1. Check out the split branch for that PR.
+2. Commit a focused fix (explain WHY in the message).
+3. If later PRs are **stacked** on this branch, rebase them:
+
+```bash
+# Example: PR4 was branched from PR3; PR3 got a fix
+git checkout feat/foo-pr4-comm-service
+git rebase feat/foo-pr3-webhooks
+```
+
+4. Re-run tests for that slice. No parity re-audit unless the fix moves files between slices.
+
+### Fix spans multiple slices
+
+1. Identify the **earliest** PR in merge order that owns the root change (contract in lib → earliest lib PR; caller + callee → usually contract PR first).
+2. Apply the fix there first.
+3. Rebase or cherry-pick into downstream stacked branches, or make matching edits on independent PRs.
+4. Check **deploy-order** again if the fix touches contracts, permissions, enums, or migrations (`lib/ci/src/prSafetyCheck/rules/`).
+
+Do not duplicate the same logical fix across PRs unless each PR must stand alone off `master` and cannot be restacked.
+
+### Wrong slice (code landed in the wrong PR)
+
+1. Move hunks to the correct split branch (`git cherry-pick -n`, `git restore --staged`, or patch).
+2. Remove from the wrong branch.
+3. Rebase downstream stack.
+4. **Re-run Step 6 parity audit** — union of splits should still match your intended end state (may differ from original source if fixes improved the design; document that).
+
+### Some PRs already merged
+
+- **Fix for merged slice** → new small follow-up PR off `master` (do not rewrite merged history).
+- **Fix for open slices** → rebase remaining stack onto current `master`, resolve conflicts, continue merge order.
+- If the fix belongs in an **earlier** slice that already merged, you may need a preparatory follow-up PR before later open PRs can merge safely (especially contracts/permissions).
+
+### When to add a new PR vs edit in place
+
+| Situation | Practice |
+|-----------|----------|
+| Bug, naming, tests, small refactor in scope | Edit the open split PR |
+| New concern that does not fit any slice | New follow-up PR (or new split slice inserted in stack with rebase) |
+| Fix invalidates deploy order | Split into two PRs or insert a prep PR — same rules as Step 3 |
+| Review asks to combine two slices | Merge branches carefully, one PR; update descriptions and drop the other PR |
+
+### Stacked PRs and force-push
+
+- Rebasing a stacked branch usually requires `git push --force-with-lease` on split branches only.
+- Never force-push the source branch.
+- If reviewers have already commented on a PR, note in the PR that you rebased the stack after fixing an earlier slice.
+
+### Sanity check after any cross-slice change
+
+- [ ] Change lives on the correct owning branch
+- [ ] Downstream stacked PRs rebased if needed
+- [ ] Deploy-order / prSafetyCheck policies still satisfied
+- [ ] Open PR descriptions still match what each PR does
+- [ ] Source branch tip unchanged (if you are still using it as reference)
+
 ## Heuristics
 
 - Prefer a PR smaller than you think necessary; reviewers rarely object to focused changes.
@@ -212,3 +326,8 @@ Do not delete the backup ref or source branch unless the user asks.
 - Hiding risky behavior change inside a "refactor" PR.
 - Modifying the source branch instead of creating suffixed split branches.
 - Conflating "merged" with "deployed" for migration PRs.
+- Treating migration-before-service as a deploy-order split — migrations already run first; split for old-instance compatibility or cross-service contracts instead.
+- Putting new API contract + caller, or new service permission + usage, in the same PR.
+- Adding enum DB values before OAS accepts them.
+- Dropping columns in a migration while removing code references in the same PR.
+- Applying post-split fixes on the source branch instead of the owning split branch (then wondering why open PRs are stale).
